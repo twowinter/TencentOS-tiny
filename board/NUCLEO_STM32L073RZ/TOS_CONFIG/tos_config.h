@@ -19,6 +19,8 @@
 
 #define TOS_CFG_MMHEAP_DEFAULT_POOL_SIZE        0x2000
 
+#define TOS_CFG_MAIL_QUEUE_EN           1u
+
 #define TOS_CFG_MUTEX_EN                1u
 
 #define TOS_CFG_TIMER_EN                1u

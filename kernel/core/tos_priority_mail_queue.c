@@ -153,6 +153,7 @@ __API__ k_err_t tos_prio_mail_q_pend(k_prio_mail_q_t *prio_mail_q, void *mail_bu
 
     TOS_PTR_SANITY_CHECK(prio_mail_q);
     TOS_PTR_SANITY_CHECK(mail_buf);
+    TOS_PTR_SANITY_CHECK(mail_size);
     TOS_OBJ_VERIFY(prio_mail_q, KNL_OBJ_TYPE_PRIORITY_MAIL_QUEUE);
 
     TOS_CPU_INT_DISABLE();

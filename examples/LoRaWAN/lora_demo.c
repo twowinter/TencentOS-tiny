@@ -1,5 +1,7 @@
 #include "lora_demo.h"
+#include "HTS221.h"
 #include "RHF76.h"
+#include "sensor_parser.h"
 
 /*
  ==================================================================================
@@ -52,20 +54,13 @@
 
 uint16_t report_period = 10;
 
+k_mail_q_t mail_q;
+#define DATA_CNT        26
+uint8_t mail_buf[DATA_CNT];
+
 typedef struct device_data_st {
-    uint8_t     temperature;
-    uint8_t     humidity;
-    uint16_t    period;
+    uint8_t     data[DATA_CNT];
 } __PACKED__ dev_data_t;
-
-typedef struct device_data_wrapper_st {
-    union {
-        dev_data_t  dev_data;
-        uint8_t     serialize[sizeof(dev_data_t)];
-    } u;
-} dev_data_wrapper_t;
-
-dev_data_wrapper_t dev_data_wrapper;
 
 void recv_callback(uint8_t *data, uint8_t len)
 {
@@ -85,30 +80,41 @@ void recv_callback(uint8_t *data, uint8_t len)
     printf("report_period: %d\n", report_period);
 }
 
+
+#define CMD_LEN_MAX     1024
+char cmd_buf[CMD_LEN_MAX];
+
+void uart_output(const char *str)
+{
+    /* if using c lib printf through uart, a simpler one is: */
+    printf(str);
+}
+
+dev_data_t dev_data;
+uint8_t pool[DATA_CNT];
+
 void application_entry(void *arg)
 {
-    int16_t temperature;
-    int16_t humidity;
-
+    int i = 0;
 
     rhf76_lora_init(HAL_UART_PORT_1);
     tos_lora_module_recvcb_register(recv_callback);
 
     tos_lora_module_join_otaa("8cf957200000fa57", "8cf957200000fa572059aaaaad204a72");
 
+    tos_mail_q_create(&mail_q, pool, DATA_CNT, sizeof(uint8_t));
+    tos_shell_init(cmd_buf, sizeof(cmd_buf), uart_output);
+
     while (1) {
-        temperature = 300;
-        humidity = 800;
-        
-        printf("temperature: %2.1f\n", temperature / 10.0);
-        printf("humidity   : %2.1f\n", humidity / 10.0);
+        size_t mail_size;
+        tos_mail_q_pend(&mail_q, &dev_data.data, &mail_size, TOS_TIME_FOREVER);
 
-        dev_data_wrapper.u.dev_data.temperature = temperature / 10;
-        dev_data_wrapper.u.dev_data.humidity    = humidity / 10;
-        dev_data_wrapper.u.dev_data.period      = report_period;
+        for (i = 0; i < mail_size; ++i) {
+            printf("[%d] %x\n", i, dev_data.data[i]);
+        }
+        printf("\n\n");
 
-        tos_lora_module_send(dev_data_wrapper.u.serialize, sizeof(dev_data_t));
-        tos_task_delay(report_period * 1000);
+        tos_lora_module_send(&dev_data.data, mail_size);
     }
 }
 

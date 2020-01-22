@@ -23,13 +23,17 @@
 #include "stm32l0xx_it.h"
 #include "tos_k.h"
 #include "tos_at.h"
+
+#include "sensor_parser.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN TD */
-
+#define MAX_RECV_LEN 1024         //设定可以接收的最大字节
+uint8_t msg_buff[MAX_RECV_LEN] = {0}; //接收缓存区
+int msg_len=0;  //数据长度记录
 /* USER CODE END TD */
 
 /* Private define ------------------------------------------------------------*/
@@ -60,6 +64,7 @@
 /* External variables --------------------------------------------------------*/
 extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart2;
+extern UART_HandleTypeDef huart5;
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
@@ -149,6 +154,20 @@ void SysTick_Handler(void)
 /******************************************************************************/
 
 /**
+  * @brief This function handles USART4 and USART5 interrupt.
+  */
+void USART4_5_IRQHandler(void)
+{
+  /* USER CODE BEGIN USART4_5_IRQn 0 */
+
+  /* USER CODE END USART4_5_IRQn 0 */
+  HAL_UART_IRQHandler(&huart5);
+  /* USER CODE BEGIN USART4_5_IRQn 1 */
+
+  /* USER CODE END USART4_5_IRQn 1 */
+}
+
+/**
   * @brief This function handles USART1 global interrupt / USART1 wake-up interrupt through EXTI line 25.
   */
 void USART1_IRQHandler(void)
@@ -180,9 +199,14 @@ void USART2_IRQHandler(void)
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
     extern uint8_t data;
+    extern uint8_t msg;
     if (huart->Instance == USART1) {
         HAL_UART_Receive_IT(&huart1, &data, 1);
         tos_at_uart_input_byte(data);
+    }
+    if (huart->Instance == USART5) {
+        HAL_UART_Receive_IT(&huart5, &msg, 1);
+        tos_shell_input_byte(msg);
     }
 }
 /* USER CODE END 1 */
